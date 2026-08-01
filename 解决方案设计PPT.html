@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>美妆零售知识库与客服协作系统 — 解决方案设计</title>
+
+    <!-- Fonts: 思源宋体(标题) + 思源黑体(正文) via Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=Noto+Sans+SC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <style>
+        /* ===========================================
+           CSS CUSTOM PROPERTIES (THEME)
+           简约学术 — 干净、克制、留白充分
+           =========================================== */
+        :root {
+            /* Colors — 黑白为主，藏蓝点缀 */
+            --bg-primary: #fafaf8;
+            --bg-secondary: #f2f1ed;
+            --bg-dark: #1c1c1c;
+            --text-primary: #1c1c1c;
+            --text-secondary: #5c5c5c;
+            --text-tertiary: #8a8a8a;
+            --accent: #2c5f8a;
+            --accent-light: #e8eff5;
+            --accent-warm: #c4744a;
+            --border: #e0ded8;
+            --border-light: #eeede9;
+            --tag-bg: #eef2f7;
+            --tag-text: #3a6b96;
+            --highlight-bg: #fef9f0;
+            --highlight-border: #f0dcc0;
+
+            /* Typography — authored at 1920×1080 stage */
+            --font-display: 'Noto Serif SC', 'Source Han Serif SC', serif;
+            --font-body: 'Noto Sans SC', 'Source Han Sans SC', sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+            /* Sizes at 1920×1080 */
+            --title-size: 64px;
+            --subtitle-size: 28px;
+            --section-size: 48px;
+            --body-size: 22px;
+            --small-size: 17px;
+            --caption-size: 15px;
+
+            /* Spacing */
+            --slide-padding-x: 100px;
+            --slide-padding-y: 72px;
+            --content-gap: 28px;
+
+            /* Animation */
+            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+            --duration-fast: 0.35s;
+            --duration-normal: 0.55s;
+            --duration-slow: 0.75s;
+
+            /* Stage */
+            --stage-bg: #1c1c1c;
+            --slide-bg: #fafaf8;
+        }
+
+        /* ===========================================
+           FIXED 16:9 STAGE: MANDATORY BASE STYLES
+           =========================================== */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            background: var(--stage-bg, #000);
+        }
+
+        .deck-viewport {
+            position: fixed;
+            inset: 0;
+            overflow: hidden;
+            background: var(--stage-bg, #000);
+        }
+
+        .deck-stage {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 1920px;
+            height: 1080px;
+            overflow: hidden;
+            transform-origin: 0 0;
+            background: var(--slide-bg, #fff);
+        }
+
+        .slide {
+            position: absolute;
+            inset: 0;
+            width: 1920px;
+            height: 1080px;
+            overflow: hidden;
+            display: block;
+            visibility: hidden;
+            opacity: 0;
+            pointer-events: none;
+            background: var(--slide-bg, #fff);
+        }
+
+        .slide.active, .slide.visible {
+            visibility: visible;
+            opacity: 1;
+            pointer-events: auto;
+            z-index: 1;
+        }
+
+        img, video, canvas, svg {
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        .deck-controls {
+            position: fixed;
+            left: 50%;
+            bottom: 22px;
+            transform: translateX(-50%);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            background: rgba(28, 28, 28, 0.85);
+            backdrop-filter: blur(12px);
+            border-radius: 40px;
+            padding: 8px 20px;
+            font-family: var(--font-body);
+            color: #aaa;
+            font-size: 14px;
+            user-select: none;
+        }
+        .deck-controls button {
+            background: none;
+            border: 1px solid rgba(255,255,255,0.15);
+            color: #ccc;
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .deck-controls button:hover {
+            background: rgba(255,255,255,0.12);
+            border-color: rgba(255,255,255,0.3);
+        }
+        .page-indicator {
+            font-variant-numeric: tabular-nums;
+            font-family: var(--font-mono);
+            font-size: 13px;
+            color: #999;
+            min-width: 72px;
+            text-align: center;
+        }
+
+        @media print {
+            html, body { width: 1920px; height: auto; overflow: visible; background: #fff; }
+            .deck-viewport { position: static; overflow: visible; background: #fff; }
+            .deck-stage { position: static; width: auto; height: auto; transform: none !important; background: none; }
+            .slide { position: relative; display: block !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; width: 1920px; height: 1080px; break-after: page; page-break-after: always; }
+            .slide:last-child { break-after: auto; page-break-after: auto; }
+            .deck-controls { display: none !important; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.2s !important;
+            }
+        }
+
+        /* ===========================================
+           SHARED STYLES
+           =========================================== */
+
+        /* Slide structure */
+        .slide-content {
+            width: 1920px;
+            height: 1080px;
+            padding: var(--slide-padding-y) var(--slide-padding-x);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Typography */
+        .slide-title {
+            font-family: var(--font-display);
+            font-size: var(--title-size);
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.2;
+            letter-spacing: 0.02em;
+        }
+        .section-title {
+            font-family: var(--font-display);
+            font-size: var(--section-size);
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.3;
+        }
+        .body-text {
+            font-family: var(--font-body);
+            font-size: var(--body-size);
+            font-weight: 400;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+        .body-text strong {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+        .caption {
+            font-family: var(--font-body);
+            font-size: var(--caption-size);
+            color: var(--text-tertiary);
+            line-height: 1.5;
+        }
+
+        /* Section label */
+        .section-label {
+            font-family: var(--font-mono);
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--accent);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+
+        /* Divider */
+        .divider {
+            width: 60px;
+            height: 2px;
+            background: var(--accent);
+            margin: 18px 0;
+        }
+        .divider-warm {
+            background: var(--accent-warm);
+        }
+
+        /* Tag */
+        .tag {
+            display: inline-block;
+            font-family: var(--font-body);
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--tag-text);
+            background: var(--tag-bg);
+            padding: 5px 14px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+        .tag-do {
+            background: #e8f3ea;
+            color: #3a7d44;
+        }
+        .tag-not {
+            background: #fdf0ed;
+            color: #b85444;
+        }
+
+        /* Card grid */
+        .card-grid {
+            display: grid;
+            gap: var(--content-gap);
+            width: 100%;
+        }
+        .card-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+        .card-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+        .card-grid.cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+
+        .card {
+            background: #fff;
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 28px 32px;
+        }
+        .card h3 {
+            font-family: var(--font-display);
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+        }
+        .card p, .card li {
+            font-family: var(--font-body);
+            font-size: var(--small-size);
+            color: var(--text-secondary);
+            line-height: 1.65;
+        }
+        .card ul {
+            list-style: none;
+            padding: 0;
+        }
+        .card li::before {
+            content: '— ';
+            color: var(--text-tertiary);
+        }
+
+        /* Pain point card */
+        .pain-card {
+            position: relative;
+            padding-left: 38px;
+        }
+        .pain-num {
+            position: absolute;
+            left: 0; top: 28px;
+            font-family: var(--font-mono);
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--accent-warm);
+        }
+
+        /* Table */
+        .styled-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: var(--font-body);
+            font-size: var(--small-size);
+        }
+        .styled-table th {
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-primary);
+            padding: 12px 16px;
+            border-bottom: 2px solid var(--border);
+            font-size: 16px;
+            background: var(--bg-secondary);
+        }
+        .styled-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-light);
+            color: var(--text-secondary);
+            line-height: 1.55;
+        }
+        .styled-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Flow diagram */
+        .flow-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            font-family: var(--font-body);
+            font-size: var(--small-size);
+        }
+        .flow-node {
+            background: #fff;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            padding: 14px 24px;
+            text-align: center;
+            color: var(--text-primary);
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .flow-node.accent {
+            border-color: var(--accent);
+            background: var(--accent-light);
+            color: var(--accent);
+        }
+        .flow-node.warn {
+            border-color: var(--accent-warm);
+            background: var(--highlight-bg);
+            color: var(--accent-warm);
+        }
+        .flow-arrow {
+            font-size: 20px;
+            color: var(--text-tertiary);
+            font-family: var(--font-mono);
+        }
+
+        /* Architecture diagram */
+        .arch-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .arch-box {
+            background: #fff;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            padding: 18px 28px;
+            text-align: center;
+            min-width: 200px;
+        }
+        .arch-box h4 {
+            font-family: var(--font-display);
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+        .arch-box p {
+            font-family: var(--font-body);
+            font-size: 13px;
+            color: var(--text-tertiary);
+            line-height: 1.4;
+        }
+        .arch-arrow {
+            font-size: 24px;
+            color: var(--accent);
+            font-family: var(--font-mono);
+        }
+        .arch-arrow-down {
+            text-align: center;
+            font-size: 24px;
+            color: var(--accent);
+            font-family: var(--font-mono);
+            margin: 4px 0;
+        }
+
+        /* Highlight box */
+        .highlight-box {
+            background: var(--highlight-bg);
+            border-left: 4px solid var(--highlight-border);
+            padding: 20px 28px;
+            border-radius: 0 8px 8px 0;
+            margin-top: 16px;
+        }
+        .highlight-box p {
+            font-family: var(--font-body);
+            font-size: var(--body-size);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        /* Principle grid */
+        .principle-list {
+            list-style: none;
+            padding: 0;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px 40px;
+        }
+        .principle-list li {
+            font-family: var(--font-body);
+            font-size: var(--small-size);
+            color: var(--text-secondary);
+            line-height: 1.55;
+            padding-left: 20px;
+            position: relative;
+        }
+        .principle-list li::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 8px;
+            width: 8px; height: 8px;
+            border-radius: 2px;
+            background: var(--accent);
+        }
+
+        /* Page number */
+        .page-num {
+            position: absolute;
+            bottom: 32px;
+            right: 48px;
+            font-family: var(--font-mono);
+            font-size: 13px;
+            color: var(--text-tertiary);
+        }
+
+        /* Animations */
+        .reveal {
+            opacity: 0;
+            transform: translateY(24px);
+            transition: opacity var(--duration-normal) var(--ease-out-expo),
+                        transform var(--duration-normal) var(--ease-out-expo);
+        }
+        .slide.visible .reveal {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .reveal:nth-child(1) { transition-delay: 0.08s; }
+        .reveal:nth-child(2) { transition-delay: 0.16s; }
+        .reveal:nth-child(3) { transition-delay: 0.24s; }
+        .reveal:nth-child(4) { transition-delay: 0.32s; }
+        .reveal:nth-child(5) { transition-delay: 0.40s; }
+        .reveal:nth-child(6) { transition-delay: 0.48s; }
+        .reveal:nth-child(7) { transition-delay: 0.56s; }
+        .reveal:nth-child(8) { transition-delay: 0.64s; }
+        .reveal:nth-child(9) { transition-delay: 0.72s; }
+        .reveal:nth-child(10) { transition-delay: 0.80s; }
+
+        /* ===========================================
+           TITLE SLIDE
+           =========================================== */
+        .title-slide {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background:
+                linear-gradient(135deg, #fafaf8 0%, #f0efea 40%, #fafaf8 100%);
+        }
+        .title-block {
+            text-align: center;
+            max-width: 1100px;
+        }
+        .title-block .overline {
+            font-family: var(--font-mono);
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--accent);
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+        .title-block h1 {
+            font-family: var(--font-display);
+            font-size: 80px;
+            font-weight: 900;
+            color: var(--text-primary);
+            line-height: 1.15;
+            letter-spacing: 0.03em;
+            margin-bottom: 24px;
+        }
+        .title-block .subtitle {
+            font-family: var(--font-body);
+            font-size: var(--subtitle-size);
+            font-weight: 300;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin-bottom: 40px;
+        }
+        .title-block .meta {
+            font-family: var(--font-body);
+            font-size: 16px;
+            color: var(--text-tertiary);
+        }
+        .title-accent {
+            position: absolute;
+            top: 0; right: 0;
+            width: 420px; height: 420px;
+            background: radial-gradient(ellipse at center, rgba(44,95,138,0.06) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        /* ===========================================
+           SECTION DIVIDER SLIDE
+           =========================================== */
+        .section-slide {
+            display: flex;
+            align-items: center;
+            padding-left: 160px;
+            background:
+                linear-gradient(90deg, var(--accent-light) 0%, #fafaf8 45%);
+        }
+        .section-slide .section-num {
+            font-family: var(--font-mono);
+            font-size: 18px;
+            font-weight: 500;
+            color: var(--accent);
+            letter-spacing: 0.1em;
+            margin-bottom: 16px;
+        }
+        .section-slide h2 {
+            font-family: var(--font-display);
+            font-size: 72px;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.2;
+            max-width: 900px;
+        }
+
+        /* ===========================================
+           CONTENT SLIDES
+           =========================================== */
+        .content-slide .slide-content {
+            padding-top: 72px;
+            padding-bottom: 72px;
+        }
+        .content-header {
+            margin-bottom: 36px;
+        }
+        .content-header h2 {
+            font-family: var(--font-display);
+            font-size: 42px;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.25;
+        }
+        .content-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            gap: var(--content-gap);
+        }
+
+        /* Two column */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 48px;
+            width: 100%;
+        }
+        .two-col-wide {
+            display: grid;
+            grid-template-columns: 5fr 4fr;
+            gap: 48px;
+            width: 100%;
+        }
+
+        /* Pain point grid */
+        .pain-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="deck-viewport">
+        <main class="deck-stage" id="deckStage">
+
+            <!-- ============================================
+                 SLIDE 1: 封面
+                 ============================================ -->
+            <section class="slide title-slide active">
+                <div class="title-accent"></div>
+                <div class="title-block">
+                    <div class="overline reveal">Solution Design · PDE</div>
+                    <h1 class="reveal">美妆零售知识库<br>与客服协作系统</h1>
+                    <p class="subtitle reveal">AI 驱动的知识检索、风险分级与人工协作方案</p>
+                    <p class="meta reveal">FDE / AI 解决方案架构师 · 2026 年 7 月</p>
+                </div>
+                <span class="page-num">1</span>
+            </section>
+
+            <!-- ============================================
+                 SLIDE 2: 目录
+                 ============================================ -->
+            <section class="slide content-slide">
+                <div class="slide-content">
+                    <div class="content-header reveal">
+                        <p class="section-label">概述</p>
+                        <h2>目录</h2>
+                        <div class="divider"></div>
+                    </div>
+                    <div class="content-body">
+                        <div class="card-grid cols-4 reveal">
+                            <div class="card">
+                                <h3>01 业务问题<br>与项目范围</h3>
+                                <p>7 大痛点分析，本期做什么/不做什么</p>
+                            </div>
+                            <div class="card">
+                                <h3>02 核心<br>用户流程</h3>
+                                <p>消费者自助 + 客服辅助双模式</p>
+                            </div>
+                            <div class="card">
+                                <h3>03 系统设计</h3>
+                                <p>模块架构、技术选型、数据来源与接入方式</p>
+                            </div>
+                            <div class="card">
+                                <h3>04 风险与<br>人工介入</h3>
+                                <p>人工确认环节、风险应对与量化验收指标</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <span class="page-num">2</span>
+            </section>
+
+            <!-- ============================================
+                 PART 1: 业务问题与项目范围
+                 ============================================ -->
+            <section class="slide section-slide">
+                <div>
+                    <p class="section-num reveal">PART 1</p>
+                    <h2 class="reveal">业务问题<br>与项目范围</h2>
+                </div>
+                <span class="page-num">3</span>
+            </section>
+
+            <!-- SLIDE 4: 7大痛点 -->
+            <section class="slide content-slide">
+                <div class="slide-content">
+                    <div class="content-header reveal">
+                        <p class="section-label">PART 1 · 问题分析</p>
+                        <h2>美妆零售客服的 7 大痛点</h2>
+                        <div class="divider"></div>
+                    </div>
+                    <div class="content-body">
+                        <table class="styled-table reveal">
+                            <thead>
+                                <tr><th style="width:8%">编号</th><th style="width:22%">痛点</th><th style="width:35%">现状</th><th>后果</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>1</td><td>知识分散、版本不一致</td><td>同一问题不同文档答案冲突</td><td>回复口径混乱</td></tr>
+                                <tr><td>2</td><td>查找核对耗时</td><td>人工翻资料效率低</td><td>客户等待时间长</td></tr>
+                                <tr><td>3</td><td>新人回复口径不稳定</td><td>缺经验，说法不统一</td><td>客户信任度下降</td></tr>
+                                <tr><td>4</td><td>功效描述容易越界</td><td>夸大功效、缺限制条件</td><td>合规风险</td></tr>
+                                <tr><td>5</td><td>高风险问题未及时转人工</td><td>靠客服自觉上报</td><td>用户安全风险</td></tr>
+                                <tr><td>6</td><td>回答缺少依据溯源</td><td>说不清答案来源</td><td>出了问题无法追责</td></tr>
+                                <tr><td>7</td><td>资深员工经验难复用</td><td>经验解决完就没了</td><td>重复造轮子</td></tr>
+                            </tbody>
+                        </table>
+                        <div class="highlight-box reveal">
+                            <p><strong>一句话总结：</strong>客服回答不准、风险控不住、经验留不下。</p>
+                        </div>
+                    </div>
+                </div>
+                <span class="page-num">4</span>
+            </section>
+
+            <!-- SLIDE 5: 做什么 / 不做什么 -->
+            <section class="slide content-slide">
+                <div class="slide-content">
+                    <div class="content-header reveal">
+                        <p class="section-label">PART 1 · 范围定义</p>
+                        <h2>本期范围：做什么 / 不做什么</h2>
+                        <div class="divider"></div>
+                    </div>
+                    <div class="content-body">
+                        <div class="two-col reveal">
+                            <div>
+                                <h3 style="font-family:var(--font-display); font-size:24px; color:#3a7d44; margin-bottom:16px;">✓ 本期交付</h3>
+                                <table class="styled-table">
+                                    <tbody>
+                                        <tr><td>知识库搭建（只读检索）</td></tr>
+                                        <tr><td>知识检索 + 回答生成 + 依据绑定</td></tr>
+                                        <tr><td>风险分级 + 转人工建议</td></tr>
+                                        <tr><td>两级转人工（消费者→初级客服→资深员工）</td></tr>
+                                        <tr><td>会话标记留档</td></tr>
+                                        <tr><td>CLI Demo 交付</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div>
+                                <h3 style="font-family:var(--font-display); font-size:24px; color:#b85444; margin-bottom:16px;">✗ 范围外</h3>
+                                <table class="styled-table">
+                                    <tbody>
+                                        <tr><td>接入真实客户系统</td></tr>
+                                        <tr><td>修改原始知识文档</td></tr>
+                                        <tr><td>退换货 / 供应链 / 物流</td></tr>
+                                        <tr><td>医疗诊断</td></tr>
+                                        <tr><td>用户画像 / 问题分类</td></tr>
+                                        <tr><td>前端 UI</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <span class="page-num">5</span>
+            </section>
+
+            <!-- ============================================
+                 PART 2: 核心用户流程
+                 ============================================ -->
+            <section class="slide section-slide">
+                <div>
+                    <p class="section-num reveal">PART 2</p>
+                    <h2 class="reveal">核心用户流程</h2>
+                </div>
+                <span class="page-num">6</span>
+            </section>
+
+            <!-- SLIDE 7: 双场景用户流程 -->
+            <section class="slide content-slide">
+                <div class="slide-content">
+                    <div class="content-header reveal">
+                        <p class="section-label">PART 2 · 用户场景</p>
+                        <h2>两大使用场景：消费者自助 + 客服辅助</h2>
+                        <div class="divider"></div>
+                    </div>
+                    <div class="content-body">
+                        <div class="two-col reveal">
+                            <!-- 场景A -->
+                            <div class="card">
+                                <h3>场景 A：终端消费者</h3>
+                                <div style="margin:16px 0; font-family:var(--font-body); font-size:15px; line-height:2.2;">
+                                    <div class="flow-node" style="display:inline-block;margin:3px;">消费者提问</div>
+                                    <span class="flow-arrow">→</span>
+                                    <div class="flow-node accent" style="display:inline-block;margin:3px;">AI 检索+回答</div>
+                                    <span class="flow-arrow">→</span>
+                                    <div class="flow-node warn" style="display:inline-block;margin:3px;">风险评估</div>
+                                </div>
+                                <ul>
+                                    <li>低风险 → 输出答案 + 来源引用，用户自行决定</li>
+                                    <li>高风险 → 答案 + 来源 + <strong>⚠ 建议转人工</strong></li>
+                                </ul>
+                            </div>
+                            <!-- 场景B -->
+                            <div class="card">
+                                <h3>场景 B：客服/导购（Agent-Assist）</h3>
+                                <div style="margin:16px 0; font-family:var(--font-body); font-size:15px; line-height:2.2;">
+                                    <div class="flow-node" style="display:inline-block;margin:3px;">客服收到问题</div>
+                                    <span class="flow-arrow">→</span>
+                                    <div class="flow-node accent" style="display:inline-block;margin:3px;">AI 返回答案+依据</div>
+                                    <span class="flow-arrow">→</span>
+                                    <div class="flow-node" style="display:inline-block;margin:3px;">客服判断采纳</div>
+                                </div>
+                                <ul>
+                                    <li>低风险+依据可靠 → 直接采用回复消费者</li>
+                                    <li>高风险 → 执行转人工流程</li>
+                                    <li>对答案有疑虑 → 人工核实依据原文</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <p class="caption reveal" style="margin-top:8px;">关键设计：同一套系统，既直接服务消费者，也作为客服的"副驾驶"。</p>
+                    </div>
+                </div>
+                <span class="page-num">7</span>
+            </section>
+
+            <!-- SLIDE 8: 核心业务流程 + 改善对比 -->
+            <section class="slide content-slide">
+                <div class="slide-content">
+                    <div class="content-header reveal">
+                        <p class="section-label">PART 2 · 流程与改善</p>
+                        <h2>核心交互流程 & 业务改善对比</h2>
+                        <div class="divider"></div>
+                    </div>
+                    <div class="content-body">
+                        <div class="two-col-wide reveal">
+                            <!-- 流程图 -->
+                            <div style="font-family:var(--font-body); font-size:16px; line-height:2.3;">
+                                <div class="flow-node">用户提出原始问题</div>
+                                <div class="flow-arrow" style="display:block;text-align:center;margin:2px 0;">↓</div>
+                                <div class="flow-node accent">AI 检索知识库 → 生成回答 + 依据</div>
+                                <div class="flow-arrow" style="display:block;text-align:center;margin:2px 0;">↓</div>
+                                <div class="flow-node warn">AI 评估风险等级</div>
+                                <div style="display:flex;gap:16px;margin-top:6px;">
+                                    <div style="flex:1;font-size:14px;">├─ 低风险 → 输出答案<br>　　 用户自行决定</div>
+                                    <div style="flex:1;font-size:14px;">└─ 高风险 → 建议转人工<br>　　→ 初级客服 → 资深员工</div>
+                                </div>
+                                <div class="flow-arrow" style="display:block;text-align:center;margin:4px 0;">↓</div>
+                                <div class="flow-node">资深员工研判 → 回复 + 标记会话留档</div>
+                            </div>
+                            <!-- 改善对比表 -->
+                            <div>
+                                <table class="styled-table">
+                                    <thead><tr><th>环节</th><th>改前 (AS-IS)</th><th>改后 (TO-BE)</th></tr></thead>
+                                    <tbody>
+                                        <tr><td>答案准确性</td><td>人工翻资料，口径不一</td><td>统一知识库，绑定原文依据</td></tr>
+                                        <tr><td>风险拦截</td><td>靠客服自觉</td><td>AI 主动评估，自动建议转人工</td></tr>
+                                        <tr><td>初级客服能力</td><td>疑难只能等资深员工</td><td>AI 辅助回答，独立处理大部分</td></tr>
+                                        <tr><td>经验沉淀</td><td>解决完就没了</td><td>标记留档，可检索复用</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <span class="page-num">8</span>
+            </section>
+
+            <!-- ============================================
+                 PART 3: 系统设计
+                 ============================================ -->
+            <section class="slide section-slide">
+                <div>
+                    <p class="section-num reveal">PART 3</p>
+                    <h2 class="reveal">系统设计</h2>
+                </div>
+                <span class="page-num">9</span>
+            </section>
+
+            <!-- SLIDE 10: 模块架构图 -->
+            <section class="slide content-slide">
+                <div class="slide-content">
+                    <div class="content-header reveal">
+                        <p class="section-label">PART 3 · 架构</p>
+                        <h2>核心模块架构</h2>
+                        <div class="divider"></div>
+                    </div>
+                    <div class="content-body">
+                        <!-- Top row: 3 modules -->
+                        <div class="arch-row reveal">
+                            <div class="arch-box">
+                                <h4>📚 知识库模块</h4>
+                                <p>文档解析 / 索引构建<br>Markdown → 向量化</p>
+                            </div>
+                            <span class="arch-arrow">→</span>
+                            <div class="arch-box">
+                                <h4>🔍 检索模块</h4>
+                                <p>向量检索 / 语义匹配<br>ChromaDB / FAISS</p>
+                            </div>
+                            <span class="arch-arrow">→</span>
+                            <div class="arch-box">
+                                <h4>💬 回答生成模块</h4>
+                                <p>RAG / LangChain<br>答案 + 依据绑定</p>
+                            </div>
+                        </div>
+                        <div class="arch-arrow-down reveal">↓</div>
+                        <!-- Middle row: risk -->
+                        <div class="arch-row reveal">
+                            <div class="arch-box" style="border-color:var(--accent-warm);">
+                                <h4>⚠ 风险分级模块</h4>
+                                <p>高/中/低风险判定<br>触发词 + 场景匹配</p>
+                            </div>
+                        </div>
+                        <div class="arch-arrow-down reveal">↓</div>
+                        <!-- Bottom row: 2 modules -->
+                        <div class="arch-row reveal">
+                            <div class="arch-box">
+                                <h4>👤 转人工模块</h4>
+                                <p>两级流转<br>消费者→客服→资深员工</p>
+                            </div>
+                            <span class="arch-arrow">→</span>
+                            <div class="arch-box">
+                                <h4>🏷 会话标记模块</h4>
+                                <p>标记留档 / 可检索<br>不修改原始文档</p>
+                            </div>
+                        </div>
+                        <p class="caption reveal" style="text-align:center;margin-top:12px;">模块依赖链：知识库搭建 → 检索 → 回答生成 → 风险分级 → 转人工 → 会话标记</p>
+                    </div>
+                </div>
+                <span class="page-num">10</span>
+            </section>
+
+            <!-- SLIDE 11: 技术选型 -->
+            <section class="slide content-slide">
+                <div class="slide-content">
+                    <div class="content-header reveal">
+                        <p class="section-label">PART 3 · 技术</p>
+                        <h2>技术选型</h2>
+                        <div class="divider"></div>
+                    </div>
+                    <div class="content-body">
+                        <table class="styled-table reveal">
+                            <thead><tr><th style="width:18%">层面</th><th style="width:22%">选型</th><th>理由</th></tr></thead>
+                            <tbody>
+                                <tr><td>开发语言</td><td><strong>Python</strong></td><td>RAG / LangChain 生态最成熟</td></tr>
+                                <tr><td>RAG 框架</td><td><strong>LangChain</strong></td><td>链式编排成熟，检索+生成+格式化一条龙</td></tr>
+                                <tr><td>向量数据库</td><td><strong>ChromaDB / FAISS</strong></td><td>Demo 阶段文档量不大，本地运行即可</td></tr>
+                                <tr><td>Embedding</td><td><strong>课程提供 API</strong></td><td>免去本地部署模型</td></tr>
+                                <tr><td>LLM</td><td><strong>Claude API</strong></td><td>对话生成能力强，支持引用格式输出</td></tr>
+                                <tr><td>CLI 交付</td><td><strong>Python CLI (click)</strong></td><td>课程要求 CLI Demo，简单直接</td></tr>
+                                <tr><td>后续扩展</td><td><strong>Django REST API</strong></td><td>后续加 Web 界面的自然路径</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <span class="page-num">11</span>
+            </section>
+
+            <!-- SLIDE 12: 数据来源与系统接入方式 -->
+            <section class="slide content-slide">
+                <div class="slide-content">
+                    <div class="content-header reveal">
+                        <p class="section-label">PART 3 · 数据与接入</p>
+                        <h2>数据来源 & 系统接入方式</h2>
+                        <div class="divider"></div>
+                    </div>
+                    <div class="content-body">
+                        <div class="two-col reveal">
+                            <div>
+                                <h3 style="font-family:var(--font-display); font-size:24px; margin-bottom:16px;">数据来源</h3>
+                                <table class="styled-table">
+                                    <thead><tr><th>数据类型</th><th>来源</th></tr></thead>
+                                    <tbody>
+                                        <tr><td>产品知识</td><td>课程脱敏 Markdown 文档</td></tr>
+                                        <tr><td>商品/效期</td><td>企业端结构化数据（Demo 用模拟数据）</td></tr>
+                                        <tr><td>历史会话</td><td>资深员工标记留档（P2 功能）</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div>
+                                <h3 style="font-family:var(--font-display); font-size:24px; margin-bottom:16px;">接入方式</h3>
+                                <div class="card" style="margin-bottom:14px;">
+                                    <h3>CLI 命令行 <span class="tag">本期交付</span></h3>
+                                    <p style="font-family:var(--font-mono); font-size:14px; margin-top:6px;">$ python agent.py ask "敏感肌能用吗？"</p>
+                                    <p>→ 输出标准化结果（答案+依据+风险标记）</p>
+                                </div>
+                                <div class="card">
+                                    <h3>REST API <span class="tag tag-do">可选扩展</span></h3>
+                                    <p style="font-family:var(--font-mono); font-size:14px; margin-top:6px;">POST /api/ask → JSON</p>
+                                    <p>对接企业系统 / 前端</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <span class="page-num">12</span>
+            </section>
+
+            <!-- ============================================
+                 PART 4: 风险与人工介入
+                 ============================================ -->
+            <section class="slide section-slide">
+                <div>
+                    <p class="section-num reveal">PART 4</p>
+                    <h2 class="reveal">风险与<br>人工介入</h2>
+                </div>
+                <span class="page-num">13</span>
+            </section>
+
+            <!-- SLIDE 14: 人工确认环节 -->
+            <section class="slide content-slide">
+                <div class="slide-content">
+                    <div class="content-header reveal">
+                        <p class="section-label">PART 4 · 人工确认</p>
+                        <h2>需要人工确认的环节</h2>
+                        <div class="divider"></div>
+                    </div>
+                    <div class="content-body">
+                        <table class="styled-table reveal">
+                            <thead><tr><th style="width:22%">环节</th><th style="width:14%">谁确认</th><th style="width:28%">确认什么</th><th>触发条件</th></tr></thead>
+                            <tbody>
+                                <tr><td>高风险问题</td><td>用户自行决定</td><td>是否转人工</td><td>AI 标记为高风险（不良反应、敏感肤质、疑似医疗诊断）</td></tr>
+                                <tr><td>知识库无匹配</td><td>用户 / 客服</td><td>是否转人工</td><td>检索结果为空或相关度低于阈值</td></tr>
+                                <tr><td>客服采纳 AI 答案</td><td>初级客服</td><td>答案是否可靠、依据是否支撑</td><td>每次使用 AI 辅助回答时</td></tr>
+                                <tr><td>疑难工单研判</td><td>资深员工</td><td>给出最终回复 + 标记会话</td><td>初级客服无法处理的工单</td></tr>
+                                <tr><td>AI 幻觉检查</td><td>客服 / 消费者</td><td>核对依据原文是否真的支撑答案</td><td>对答案有疑虑时</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <span class="page-num">14</span>
+            </section>
+
+            <!-- SLIDE 15: 主要风险与应对 -->
+            <section class="slide content-slide">
+                <div class="slide-content">
+                    <div class="content-header reveal">
+                        <p class="section-label">PART 4 · 风险应对</p>
+                        <h2>主要风险与应对策略</h2>
+                        <div class="divider"></div>
+                    </div>
+                    <div class="content-body">
+                        <table class="styled-table reveal">
+                            <thead><tr><th style="width:18%">风险</th><th style="width:22%">影响</th><th>应对策略</th></tr></thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>AI 幻觉</strong></td>
+                                    <td>编造信息，误导用户</td>
+                                    <td>① 答案必须绑定引用出处 ② 人工可核对依据原文 ③ 高风险强制转人工</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>高风险漏报</strong></td>
+                                    <td>敏感问题未拦截，造成用户伤害</td>
+                                    <td>① 预设高风险关键词/模式 ② 宁可多拦截，不可漏过 ③ 知识库覆盖不全默认转人工</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>过度拦截</strong></td>
+                                    <td>常规问题频繁转人工，系统不可用</td>
+                                    <td>验收指标控制——过度拦截率 ≤ 10%</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>知识库过时</strong></td>
+                                    <td>检索内容已不适用</td>
+                                    <td>① 会话标记留档作为补充 ② 未来迭代走知识库更新流程</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>回复口径漂移</strong></td>
+                                    <td>同一问题前后矛盾</td>
+                                    <td>① 所有答案绑定知识库原文 ② 验收标准：回答一致性 ≥ 90%</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <span class="page-num">15</span>
+            </section>
+
+            <!-- SLIDE 16: 量化验收指标 + 核心原则 -->
+            <section class="slide content-slide">
+                <div class="slide-content">
+                    <div class="content-header reveal">
+                        <p class="section-label">PART 4 · 验收与原则</p>
+                        <h2>量化验收指标 & 核心安全原则</h2>
+                        <div class="divider"></div>
+                    </div>
+                    <div class="content-body">
+                        <div class="two-col reveal">
+                            <div>
+                                <h3 style="font-family:var(--font-display); font-size:24px; margin-bottom:16px;">六项验收指标</h3>
+                                <table class="styled-table">
+                                    <thead><tr><th>指标</th><th style="width:22%">通过线</th></tr></thead>
+                                    <tbody>
+                                        <tr><td>检索召回率 (Recall@5)</td><td>≥ 90%</td></tr>
+                                        <tr><td>依据准确率</td><td>≥ 90%</td></tr>
+                                        <tr><td>回答一致性</td><td>≥ 90%</td></tr>
+                                        <tr><td>高风险拦截率（召回）</td><td>≥ 95%</td></tr>
+                                        <tr><td>过度拦截率（误报）</td><td>≤ 10%</td></tr>
+                                        <tr><td>平均响应时间</td><td>≤ 5 秒</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div>
+                                <h3 style="font-family:var(--font-display); font-size:24px; margin-bottom:16px;">AI 定位与约束</h3>
+                                <div class="highlight-box" style="margin-top:0;">
+                                    <p style="font-size:20px;"><strong>AI 的定位：辅助 ≠ 替代</strong></p>
+                                </div>
+                                <ul class="principle-list" style="margin-top:20px;">
+                                    <li>不编造信息（每条答案有出处）</li>
+                                    <li>不做医疗诊断（涉及诊断→转人工）</li>
+                                    <li>不做绝对功效承诺（基于客观事实）</li>
+                                    <li>知识库没有的不硬答（检索为空→转人工）</li>
+                                    <li>高风险一律建议转人工（宁可多拦、不可漏过）</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <span class="page-num">16</span>
+            </section>
+
+            <!-- ============================================
+                 SLIDE 17: 结束页
+                 ============================================ -->
+            <section class="slide title-slide">
+                <div class="title-accent"></div>
+                <div class="title-block">
+                    <div class="overline reveal">Thank You</div>
+                    <h1 class="reveal" style="font-size:72px;">谢谢</h1>
+                    <p class="subtitle reveal">美妆零售知识库与客服协作系统 · 解决方案设计</p>
+                    <p class="meta reveal">PDE 课程作业 · 2026 年 7 月</p>
+                </div>
+                <span class="page-num">17</span>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Navigation Controls -->
+    <div class="deck-controls">
+        <button id="prevBtn" title="上一页 (←)">◀</button>
+        <span class="page-indicator" id="pageIndicator">1 / 17</span>
+        <button id="nextBtn" title="下一页 (→)">▶</button>
+    </div>
+
+    <script>
+        /* ===========================================
+           SLIDE PRESENTATION CONTROLLER
+           =========================================== */
+        class SlidePresentation {
+            constructor() {
+                this.slides = document.querySelectorAll('.slide');
+                this.currentSlide = 0;
+                this.stage = document.getElementById('deckStage');
+                this.pageIndicator = document.getElementById('pageIndicator');
+                this.totalSlides = this.slides.length;
+
+                this.setupStageScale();
+                this.setupKeyboardNav();
+                this.setupTouchNav();
+                this.setupWheelNav();
+                this.setupButtons();
+                this.showSlide(0);
+            }
+
+            setupStageScale() {
+                const scale = () => {
+                    const factor = Math.min(
+                        window.innerWidth / 1920,
+                        window.innerHeight / 1080
+                    );
+                    const x = (window.innerWidth - 1920 * factor) / 2;
+                    const y = (window.innerHeight - 1080 * factor) / 2;
+                    this.stage.style.transform = `translate(${x}px, ${y}px) scale(${factor})`;
+                };
+                scale();
+                window.addEventListener('resize', scale);
+            }
+
+            setupKeyboardNav() {
+                document.addEventListener('keydown', (e) => {
+                    if (e.target.getAttribute('contenteditable')) return;
+                    switch (e.key) {
+                        case 'ArrowRight': case 'ArrowDown': case ' ':
+                            e.preventDefault();
+                            this.nextSlide();
+                            break;
+                        case 'ArrowLeft': case 'ArrowUp':
+                            e.preventDefault();
+                            this.prevSlide();
+                            break;
+                        case 'Home':
+                            e.preventDefault();
+                            this.showSlide(0);
+                            break;
+                        case 'End':
+                            e.preventDefault();
+                            this.showSlide(this.totalSlides - 1);
+                            break;
+                    }
+                });
+            }
+
+            setupTouchNav() {
+                let touchStartX = 0, touchStartY = 0;
+                document.addEventListener('touchstart', (e) => {
+                    touchStartX = e.touches[0].clientX;
+                    touchStartY = e.touches[0].clientY;
+                }, { passive: true });
+                document.addEventListener('touchend', (e) => {
+                    const dx = e.changedTouches[0].clientX - touchStartX;
+                    const dy = e.changedTouches[0].clientY - touchStartY;
+                    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
+                        dx > 0 ? this.prevSlide() : this.nextSlide();
+                    } else if (Math.abs(dy) > 50 && Math.abs(dy) > Math.abs(dx)) {
+                        dy > 0 ? this.prevSlide() : this.nextSlide();
+                    }
+                });
+            }
+
+            setupWheelNav() {
+                let wheelTimeout;
+                document.addEventListener('wheel', (e) => {
+                    e.preventDefault();
+                    if (wheelTimeout) return;
+                    wheelTimeout = setTimeout(() => { wheelTimeout = null; }, 800);
+                    e.deltaY > 0 ? this.nextSlide() : this.prevSlide();
+                }, { passive: false });
+            }
+
+            setupButtons() {
+                document.getElementById('prevBtn').addEventListener('click', () => this.prevSlide());
+                document.getElementById('nextBtn').addEventListener('click', () => this.nextSlide());
+            }
+
+            showSlide(index) {
+                this.currentSlide = Math.max(0, Math.min(index, this.totalSlides - 1));
+                this.slides.forEach((slide, i) => {
+                    const isActive = i === this.currentSlide;
+                    slide.classList.toggle('active', isActive);
+                    slide.classList.toggle('visible', isActive);
+                });
+                this.pageIndicator.textContent = `${this.currentSlide + 1} / ${this.totalSlides}`;
+            }
+
+            nextSlide() {
+                if (this.currentSlide < this.totalSlides - 1) {
+                    this.showSlide(this.currentSlide + 1);
+                }
+            }
+
+            prevSlide() {
+                if (this.currentSlide > 0) {
+                    this.showSlide(this.currentSlide - 1);
+                }
+            }
+        }
+
+        new SlidePresentation();
+    </script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+{
+  "eval_id": 4,
+  "variant": "without_skill",
+  "assertions": [
+    {
+      "text": "诚实地承认知识库中没有此产品信息（出现 没有/暂无/未覆盖 等词）",
+      "passed": false,
+      "evidence": "诚实承认=False"
+    },
+    {
+      "text": "使用了模板C格式 或 明确区分了知识库缺失和拒绝回答",
+      "passed": false,
+      "evidence": "模板C风格=False"
+    },
+    {
+      "text": "未编造兰蔻小黑瓶的功效或成分信息",
+      "passed": true,
+      "evidence": "需人工复核"
+    },
+    {
+      "text": "给出了合理的后续建议（查官方/转人工）",
+      "passed": false,
+      "evidence": "含转人工/医生建议=False"
+    }
+  ]
+}

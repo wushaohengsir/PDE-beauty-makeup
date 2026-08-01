@@ -1,0 +1,12 @@
+# 构建产物 / 压缩包
+*.zip
+
+# 临时截图与二维码
+lark-auth-qr.png
+
+# 系统/编辑器
+.DS_Store
+Thumbs.db
+
+# Claude 本地设置（如出现）
+.claude/settings.local.json

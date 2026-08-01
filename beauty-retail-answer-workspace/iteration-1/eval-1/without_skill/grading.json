@@ -1,0 +1,36 @@
+{
+  "eval_id": 1,
+  "variant": "without_skill",
+  "assertions": [
+    {
+      "text": "回答包含模板A格式标记：## 回答、### 用户问题、### 答案",
+      "passed": false,
+      "evidence": "回答=False, 用户问题=False, 答案=False"
+    },
+    {
+      "text": "### 依据来源 中引用了知识库文件名（含 .md）",
+      "passed": false,
+      "evidence": "来源标题=False, 含.md=False"
+    },
+    {
+      "text": "### 依据来源 中包含知识库原文引用（非空）",
+      "passed": false,
+      "evidence": "原文引用存在=False"
+    },
+    {
+      "text": "答案中提到了至少一项具体功效（均匀肤色/淡化/提亮/补水）",
+      "passed": true,
+      "evidence": "命中的功效关键词: ['均匀肤色', '淡化', '提亮', '补水', '改善肤质', '光泽']"
+    },
+    {
+      "text": "回答中确认了油皮可以使用",
+      "passed": true,
+      "evidence": "油皮+可用=True"
+    },
+    {
+      "text": "未出现 建议转人工 或高风险警示（这是低风险问题）",
+      "passed": true,
+      "evidence": "含转人工/高风险警示=False"
+    }
+  ]
+}

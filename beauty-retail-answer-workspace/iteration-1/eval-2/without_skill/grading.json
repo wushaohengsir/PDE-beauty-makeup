@@ -1,0 +1,36 @@
+{
+  "eval_id": 2,
+  "variant": "without_skill",
+  "assertions": [
+    {
+      "text": "回答包含模板A格式标记：## 回答、### 用户问题、### 答案",
+      "passed": false,
+      "evidence": "回答=False, 用户问题=False, 答案=False"
+    },
+    {
+      "text": "答案中明确指出了与维C同时使用存在冲突或风险",
+      "passed": true,
+      "evidence": "含冲突说明=True"
+    },
+    {
+      "text": "答案中给出了替代方案或注意事项（错开时间/用衍生物/日间防晒）",
+      "passed": true,
+      "evidence": "含替代建议=True"
+    },
+    {
+      "text": "包含中风险提醒或贴片测试建议",
+      "passed": true,
+      "evidence": "含提醒=True"
+    },
+    {
+      "text": "### 依据来源 引用了知识库中禁忌/冲突相关章节",
+      "passed": true,
+      "evidence": "引用禁忌内容=True"
+    },
+    {
+      "text": "未编造知识库中不存在的产品信息",
+      "passed": true,
+      "evidence": "需人工复核"
+    }
+  ]
+}
