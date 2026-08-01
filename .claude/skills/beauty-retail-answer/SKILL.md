@@ -18,25 +18,43 @@ description: >
 
 回答同时面向**终端客户**和**人工客服**，必须带依据来源供人工二次确认。
 
-## 知识库
+## 知识库（飞书云端 + 本地兜底）
 
-```
-知识库/
-```
+企业数据存于飞书云端，本地 `知识库/` 作离线兜底与开发期数据源。
 
-（项目根目录下的 `知识库/` 文件夹，即本 Skill 所在仓库的 `知识库/` 目录。）
+### 检索优先级
+1. **飞书云文档**（产品知识长文本）— 主数据源
+2. **飞书多维表格**（商品信息/库存效期）— 结构化查询
+3. **本地 `知识库/*.md`** — 飞书不可达时兜底
 
-Markdown 格式，每篇一个产品。收到问题后先 `ls 知识库/` 看有哪些产品，再直接读取或用 Grep 搜索相关 `.md` 文件。
+### 飞书资源（租户 guanghe-studio.feishu.cn，user 身份）
+- 产品知识文件夹：`K64mfxVq5lxVKXdDynicTwWcn5g`
+- 企业系统数据库（多维表格）app_token：`W6SAbbkXFaOUV1sWCqAcxl2ynSQ`
+  - 商品信息表 `tblEoHP6EPL63Wmy`：含 product_id、产品名称、品牌、品类、风险等级默认、**飞书文档链接**（doc_token）
+  - 库存效期表 `tblicHw9gxC2nS4M`：批次/库存/效期/状态
+  - 会话标记表 `tblpRpbprhZIzlqp`：工单留档
 
-> 企业系统接入后，知识库的检索可改为调用企业 CLI/MCP（封装飞书云文档 + 多维表格），本地 `知识库/` 作为离线兜底与开发期数据源。
+### 检索命令（lark-cli，--as user）
+- 列出所有产品（定位产品 + 取其云文档 token）：`lark-cli base +record-list --base-token W6SAbbkXFaOUV1sWCqAcxl2ynSQ --table-id tblEoHP6EPL63Wmy --as user`
+- 读取产品知识云文档全文：`lark-cli docs +fetch --doc <doc_token> --doc-format markdown --as user`（doc_token 从商品信息表的「飞书文档链接」字段取）
+- 查库存效期：`lark-cli base +record-search --base-token W6SAbbkXFaOUV1sWCqAcxl2ynSQ --table-id tblicHw9gxC2nS4M --filter-json '{...}' --as user`
+
+> 飞书不可达（网络/权限/限流）时回退本地：`ls 知识库/` 后用 Grep 搜索相关 `.md`。检索为空（无匹配）→ coverage=false，按模板 B/C 处理。
 
 ## 工作流程
 
 ### 第一步：理解问题
 提取：产品名、成分名、皮肤问题、用户身份、具体诉求。
 
-### 第二步：检索知识库
-读取或搜索知识库目录，找到匹配的原文段落，记录**文件名 + 原文**。
+### 第二步：检索知识库（飞书优先，本地兜底）
+1. 从问题提取产品名/成分名
+2. 查飞书多维表格·商品信息表，定位产品记录，取「飞书文档链接」中的 doc_token
+3. 用 `lark-cli docs +fetch --doc <doc_token> --doc-format markdown` 读取该产品云文档全文，找到匹配段落，记录**文档标题 + 原文 + 飞书链接**
+4. 需要库存/效期信息时查库存效期表
+5. 飞书不可达 → 回退本地 `知识库/*.md`，记录**文件名 + 原文**
+6. 检索为空（无匹配）→ coverage=false，按模板 B/C 处理
+
+引用出处优先用飞书云文档链接；本地兜底时用文件名。
 
 ### 第三步：风险定级
 

@@ -7,7 +7,7 @@ FDE 共学营大作业。为美妆零售企业搭建"知识检索 + 回答生成
 ## 当前状态（2026-08-02）
 
 - **知识库**：`知识库/*.md`，5 篇产品条目（α-熊果苷、烟酰胺、宝拉2%BHA、珀莱雅防晒、CATHERINEY卸妆膏），持续扩充
-- **回答 Skill**：`.claude/skills/beauty-retail-answer/`（检索→定级→模板输出→转人工），知识库路径已指向项目 `知识库/`
+- **回答 Skill**：`.claude/skills/beauty-retail-answer/`（检索→定级→模板输出→转人工）。检索已接入飞书云端：优先查飞书云文档+多维表格，本地 `知识库/` 作离线兜底
 - **Mock 素材 Skill**：`.claude/skills/fde-mock-knowledge-base/`（生成 5 篇企业流程 Mock 文档并导入飞书）
 - **飞书企业系统模拟**：5 篇产品云文档 + 多维表格「美妆零售企业系统数据库」（商品信息/库存效期/会话标记 3 表）。token 见 memory `feishu-enterprise-system`
 - **设计 skill（用户级）**：api-and-interface-design、mcp-builder、postgres-patterns、backend-patterns、security-and-hardening
@@ -29,9 +29,10 @@ FDE 共学营大作业。为美妆零售企业搭建"知识检索 + 回答生成
 4. git commit 推 GitHub
 
 ### 端到端 Demo 待实现（下一步）
-- 用 lark-cli 封装检索层：`search_product_docs`（读云文档）/ `query_inventory`（读多维表格）/ `mark_session`（写会话标记表）
-- 让 beauty-retail-answer skill 的检索步骤改调上述工具，本地 `知识库/` 兜底
-- 跑通：`python agent.py ask "珀莱雅防晒孕期可以用吗"` → 检索飞书 → 定级(高) → 答案+依据+建议转人工
+- beauty-retail-answer skill 已接入飞书检索（`lark-cli docs +fetch` 读云文档 + `lark-cli base +record-search` 查多维表格），本地 `知识库/` 兜底
+- 待做：封装 CLI 入口 `python agent.py ask "..."`，串起"理解问题→飞书检索→定级→模板输出"完整链路
+- 待做：高风险/无覆盖时自动写入会话标记表（`lark-cli base +record-batch-create` 写 tblpRpbprhZIzlqp）
+- 验收：`python agent.py ask "珀莱雅防晒孕期可以用吗"` → 检索飞书 → 定级(高) → 答案+依据+建议转人工
 
 ### 飞书操作约定
 - 身份：user 身份（吴绍恒），已授 base 全套 scope
